@@ -1,0 +1,84 @@
+/* style.css */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: #f0f0f0;
+}
+
+header {
+  background-color: #6441a5;
+  color: white;
+  padding: 1em;
+  text-align: center;
+}
+
+#connectWalletBtn {
+  background-color: #9146ff;
+  border: none;
+  padding: 0.5em 1em;
+  color: white;
+  cursor: pointer;
+  font-size: 1em;
+  margin-top: 0.5em;
+}
+#connectWalletBtn:hover {
+  background-color: #7d3ce8;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 1em auto;
+  width: 90%;
+  max-width: 600px;
+}
+
+#chatContainer {
+  width: 100%;
+  background-color: white;
+  border: 1px solid #ddd;
+  height: 60vh;
+  overflow-y: auto;
+  margin-bottom: 1em;
+  padding: 1em;
+}
+
+#messagesList {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+#messagesList li {
+  margin-bottom: 0.5em;
+  line-height: 1.4em;
+  word-wrap: break-word;
+}
+
+.username {
+  font-weight: bold;
+  margin-right: 0.5em;
+  color: #6441a5;
+}
+
+#inputContainer {
+  display: flex;
+  width: 100%;
+}
+#chatInput {
+  flex: 1;
+  padding: 0.5em;
+  font-size: 1em;
+}
+#sendBtn {
+  background-color: #6441a5;
+  border: none;
+  padding: 0.5em 1em;
+  color: white;
+  cursor: pointer;
+  font-size: 1em;
+}
+#sendBtn:hover {
+  background-color: #52348c;
+}
