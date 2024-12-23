@@ -1,0 +1,47 @@
+[
+  {
+    "table_name": "messages",
+    "column_name": "id",
+    "data_type": "bigint"
+  },
+  {
+    "table_name": "messages",
+    "column_name": "user_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_name": "messages",
+    "column_name": "content",
+    "data_type": "text"
+  },
+  {
+    "table_name": "messages",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "users",
+    "column_name": "id",
+    "data_type": "bigint"
+  },
+  {
+    "table_name": "users",
+    "column_name": "walletpublickey",
+    "data_type": "text"
+  },
+  {
+    "table_name": "users",
+    "column_name": "username",
+    "data_type": "text"
+  },
+  {
+    "table_name": "users",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "users",
+    "column_name": "last_message_at",
+    "data_type": "timestamp with time zone"
+  }
+]
