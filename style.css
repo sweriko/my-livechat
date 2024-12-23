@@ -5,9 +5,9 @@
   box-sizing: border-box;
 }
 
-/* Make the body occupy the full viewport, 
-   so absolute positioning (header, chat) is easier to manage */
-html, body {
+/* Make the body occupy the full viewport */
+html,
+body {
   width: 100%;
   height: 100%;
 }
@@ -15,19 +15,12 @@ html, body {
 body {
   background: #ffffff;
   font-family: Arial, sans-serif;
-  position: relative; 
+  position: relative;
 }
 
-/* Wallet button in top-right */
-header {
-  position: absolute;
-  top: 1em;
-  right: 1em;
-}
+/* Remove the header styling since it's no longer used */
 
-/* Wrapper that holds the chat messages + input. 
-   Absolute positioning pinned to the right side, 
-   vertically centered via top:50% + transform. */
+/* Wrapper that holds the chat messages + input */
 #chatWrapper {
   position: absolute;
   top: 50%;
@@ -37,16 +30,39 @@ header {
   border: 1px solid #000;
   background-color: #ffffff; /* So it stands out */
   display: flex;
-  flex-direction: column; /* stack messages + slowMode + input vertically */
+  flex-direction: column; /* stack wallet, messages, warnings, input vertically */
   box-sizing: border-box;
+}
+
+/* Wallet container styling */
+#walletContainer {
+  padding: 1em;
+  border-bottom: 1px solid #ccc;
+  text-align: center;
+  background-color: #f9f9f9; /* Slight background to distinguish */
+}
+
+#connectWalletBtn {
+  background-color: #9146ff;
+  border: none;
+  padding: 0.6em 1.2em;
+  color: white;
+  cursor: pointer;
+  font-size: 1em;
+  border-radius: 4px; /* Slightly rounded corners */
+  transition: background-color 0.3s ease; /* Smooth hover transition */
+}
+
+#connectWalletBtn:hover {
+  background-color: #7d3ce8;
 }
 
 /* The messages area grows/fills space above the input. */
 #chatContainer {
-  flex: 1;                /* fills available vertical space */
-  overflow-y: auto;       /* so messages can scroll */
+  flex: 1; /* fills available vertical space */
+  overflow-y: auto;
   padding: 1em;
-  border-bottom: 1px solid #ccc;
+  /* Remove border-bottom since slowModeWarning is handling it */
 }
 
 /* The messages list inside the chat container */
@@ -55,32 +71,50 @@ header {
   padding: 0;
   margin: 0;
 }
+
 #messagesList li {
   margin-bottom: 0.5em;
   line-height: 1.4em;
   word-wrap: break-word;
 }
+
+/* .username color will be set dynamically in JS */
 .username {
   font-weight: bold;
   margin-right: 0.5em;
-  color: #6441a5;
 }
 
-/* Slow-mode warning area (displayed dynamically) */
+/* Slow-mode / error warnings (displayed dynamically) */
 #slowModeWarning {
   width: 100%;
   color: red;
-  display: none;      /* hidden by default */
+  display: none; /* hidden by default */
   font-size: 0.9em;
   text-align: center;
-  border-bottom: 1px solid #ccc;
+  border-top: 1px solid #ccc;
+  padding: 0.3em;
+  background-color: #fff5f5; /* Light red background for visibility */
 }
 
 /* Shake animation */
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-  20%, 40%, 60%, 80% { transform: translateX(5px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-5px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(5px);
+  }
 }
 .shake {
   animation: shake 0.3s;
@@ -89,16 +123,19 @@ header {
 /* Input container pinned at bottom of chat wrapper */
 #inputContainer {
   display: flex;
-  border-top: none; /* or 1px solid #ccc if you want a top border */
+  border-top: 1px solid #ccc; /* Add top border to separate from messages */
+  padding: 0.5em;
+  background-color: #f9f9f9; /* Slight background to distinguish */
 }
 
 #chatInput {
   flex: 1;
   padding: 0.5em;
   font-size: 1em;
-  border: none;
-  border-right: 1px solid #ccc;
+  border: 1px solid #ccc;
+  border-right: none; /* Remove right border since send button is next to it */
   outline: none;
+  border-radius: 4px 0 0 4px; /* Rounded corners on the left */
 }
 
 #sendBtn {
@@ -108,20 +145,10 @@ header {
   color: white;
   cursor: pointer;
   font-size: 1em;
-}
-#sendBtn:hover {
-  background-color: #52348c;
+  border-radius: 0 4px 4px 0; /* Rounded corners on the right */
+  transition: background-color 0.3s ease; /* Smooth hover transition */
 }
 
-/* Phantom Connect button styling */
-#connectWalletBtn {
-  background-color: #9146ff;
-  border: none;
-  padding: 0.6em 1.2em;
-  color: white;
-  cursor: pointer;
-  font-size: 1em;
-}
-#connectWalletBtn:hover {
-  background-color: #7d3ce8;
+#sendBtn:hover {
+  background-color: #52348c;
 }

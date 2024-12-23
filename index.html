@@ -8,19 +8,19 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   </head>
   <body>
-    <!-- Wallet button in top-right -->
-    <header>
-      <button id="connectWalletBtn">Connect Phantom Wallet</button>
-    </header>
-
     <!-- Entire chat pinned to right, centered vertically -->
     <div id="chatWrapper">
+      <!-- Wallet Connect Button -->
+      <div id="walletContainer">
+        <button id="connectWalletBtn">Connect Phantom Wallet</button>
+      </div>
+
       <!-- Messages area -->
       <div id="chatContainer">
         <ul id="messagesList"></ul>
       </div>
 
-      <!-- Slow-mode warning (will appear/disappear) -->
+      <!-- Slow-mode warning / Error messages -->
       <div id="slowModeWarning"></div>
 
       <!-- Input area -->

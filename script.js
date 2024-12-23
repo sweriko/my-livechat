@@ -3,6 +3,9 @@
 let supabase; // We'll create it after fetching /config
 let messagesSubscription;
 
+// Store color info for each username in memory
+const userColorMap = {};
+
 /************************************************************
  * 1. HTML ELEMENTS
  ************************************************************/
@@ -12,7 +15,7 @@ const chatContainer = document.getElementById("chatContainer");
 const chatInput = document.getElementById("chatInput");
 const sendBtn = document.getElementById("sendBtn");
 
-// Slow mode warning text
+// Warning/error area (used for slow mode or other short messages)
 const slowModeWarning = document.getElementById("slowModeWarning");
 
 /************************************************************
@@ -20,24 +23,22 @@ const slowModeWarning = document.getElementById("slowModeWarning");
  ************************************************************/
 
 /**
- * Show slow mode warning with shake animation.
+ * Show a short warning message in the #slowModeWarning area
+ * with optional shake animation.
  */
-function showSlowModeWarning() {
-  slowModeWarning.textContent = "You are too fast dude!";
+function showWarning(msg, doShake = false) {
+  slowModeWarning.textContent = msg;
   slowModeWarning.style.display = "block";
 
-  // Add the shake class to trigger animation
-  slowModeWarning.classList.add("shake");
+  if (doShake) {
+    slowModeWarning.classList.add("shake");
+    setTimeout(() => slowModeWarning.classList.remove("shake"), 300);
+  }
 
-  // Remove the shake class after the animation completes (0.3s)
-  setTimeout(() => {
-    slowModeWarning.classList.remove("shake");
-  }, 300); // Matches the animation duration
-
-  // Hide the warning after 0.6s total
+  // Hide the warning after 1.5s
   setTimeout(() => {
     slowModeWarning.style.display = "none";
-  }, 600);
+  }, 1500);
 }
 
 /**
@@ -46,6 +47,13 @@ function showSlowModeWarning() {
 function generateRandomUsername() {
   const randomId = Math.floor(1000 + Math.random() * 9000);
   return "User" + randomId;
+}
+
+/**
+ * Returns a random hex color string, e.g. "#3f2abc".
+ */
+function generateRandomColor() {
+  return "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0");
 }
 
 /**
@@ -92,14 +100,28 @@ async function getOrCreateUser(publicKey) {
 }
 
 /**
+ * Assign a random color to a username if not already stored.
+ */
+function assignUserColor(username) {
+  if (!userColorMap[username]) {
+    userColorMap[username] = generateRandomColor();
+  }
+  return userColorMap[username];
+}
+
+/**
  * Adds a new message to the chat UI.
  */
 function addMessageToUI(username, content) {
+  // Assign color to the username if not present
+  const color = assignUserColor(username);
+
   const li = document.createElement("li");
 
   const userSpan = document.createElement("span");
   userSpan.textContent = username + ":";
   userSpan.classList.add("username");
+  userSpan.style.color = color;
 
   const contentSpan = document.createElement("span");
   contentSpan.textContent = " " + content;
@@ -113,20 +135,23 @@ function addMessageToUI(username, content) {
 }
 
 /**
- * Fetch existing messages from Supabase and display them.
+ * Fetch existing messages from Supabase (last 50 only) and display them.
  */
 async function fetchExistingMessages() {
   const { data: messages, error } = await supabase
     .from("messages")
     .select("content, created_at, user_id, users(username)")
-    .order("created_at", { ascending: true })
-    .limit(50);
+    .order("created_at", { ascending: false }) // get newest first
+    .limit(50); // only get last 50 messages
 
   if (error) {
     console.error("Error fetching messages:", error);
     return;
   }
-  messages.forEach((msg) => {
+
+  // We got the newest 50 in reverse order; reverse them for chronological display
+  const reversed = messages.reverse();
+  reversed.forEach((msg) => {
     addMessageToUI(msg.users.username, msg.content);
   });
 }
@@ -209,18 +234,24 @@ chatInput.addEventListener("keyup", (e) => {
 });
 
 /**
- * Sends a message if slow mode allows.
+ * Sends a message if slow mode and length checks pass.
  */
 async function sendMessage() {
   const userData = JSON.parse(localStorage.getItem("myLivechatUser"));
   if (!userData || !userData.id) {
-    // If user is not connected, we can show a warning or do nothing
-    showSlowModeWarning();
+    // If user not connected, show warning
+    showWarning("Please connect your wallet first!", true);
     return;
   }
 
-  const content = chatInput.value.trim();
+  let content = chatInput.value.trim();
   if (!content) return;
+
+  // Check max length
+  if (content.length > 50) {
+    showWarning("Message too long (max 50 chars)!", true);
+    return;
+  }
 
   // Check slow mode (compare now vs. user.last_message_at)
   const { data: freshUser, error: fetchError } = await supabase
@@ -242,8 +273,9 @@ async function sendMessage() {
   // If lastMessageAt is not null, check time difference
   if (lastMessageAt) {
     const diffInSeconds = (now.getTime() - lastMessageAt.getTime()) / 1000;
-    if (diffInSeconds < 5) {
-      showSlowModeWarning();
+    // Updated to 2-second cooldown
+    if (diffInSeconds < 2) {
+      showWarning("You are too fast! Slow mode is on.", true);
       return;
     }
   }
@@ -255,6 +287,7 @@ async function sendMessage() {
 
   if (insertError) {
     console.error("Error sending message:", insertError);
+    showWarning("Error sending message!", true);
     return;
   }
 
@@ -269,7 +302,7 @@ async function sendMessage() {
   if (updateError) {
     console.error("Error updating last_message_at:", updateError);
   } else {
-    // Update local storage
+    // Update local storage with fresh user info
     localStorage.setItem("myLivechatUser", JSON.stringify(updatedUser));
   }
 
@@ -281,8 +314,8 @@ async function sendMessage() {
  * 4. INIT
  ************************************************************/
 window.addEventListener("DOMContentLoaded", async () => {
-  // Fetch /config to get environment data
   try {
+    // Fetch /config to get environment data
     const configResponse = await fetch("/config");
     const configData = await configResponse.json();
 
