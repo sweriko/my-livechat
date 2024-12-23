@@ -21,7 +21,6 @@ const slowModeWarning = document.getElementById("slowModeWarning");
 
 /**
  * Show slow mode warning with shake animation.
- * The warning appears, shakes, and disappears.
  */
 function showSlowModeWarning() {
   slowModeWarning.textContent = "You are too fast dude!";
@@ -35,15 +34,14 @@ function showSlowModeWarning() {
     slowModeWarning.classList.remove("shake");
   }, 300); // Matches the animation duration
 
-  // Hide the warning after the animation completes plus a brief pause
+  // Hide the warning after 0.6s total
   setTimeout(() => {
     slowModeWarning.style.display = "none";
-  }, 600); // 300ms animation + 300ms pause
+  }, 600);
 }
 
 /**
- * Generates a random username in the format "UserXXXX"
- * where XXXX is a random 4-digit number.
+ * Generates a random username in the format "UserXXXX".
  */
 function generateRandomUsername() {
   const randomId = Math.floor(1000 + Math.random() * 9000);
@@ -51,9 +49,7 @@ function generateRandomUsername() {
 }
 
 /**
- * Retrieves an existing user or creates a new one in the "users" table.
- * @param {string} publicKey - The user's wallet public key.
- * @returns {object|null} - The user object or null if creation failed.
+ * Retrieves or creates a user in "users" table.
  */
 async function getOrCreateUser(publicKey) {
   // Check localStorage first
@@ -97,8 +93,6 @@ async function getOrCreateUser(publicKey) {
 
 /**
  * Adds a new message to the chat UI.
- * @param {string} username - The sender's username.
- * @param {string} content - The message content.
  */
 function addMessageToUI(username, content) {
   const li = document.createElement("li");
@@ -119,7 +113,7 @@ function addMessageToUI(username, content) {
 }
 
 /**
- * Fetches existing messages from Supabase and displays them.
+ * Fetch existing messages from Supabase and display them.
  */
 async function fetchExistingMessages() {
   const { data: messages, error } = await supabase
@@ -138,7 +132,7 @@ async function fetchExistingMessages() {
 }
 
 /**
- * Subscribes to real-time message inserts and updates the UI accordingly.
+ * Subscribes to real-time message inserts.
  */
 function subscribeToMessages() {
   messagesSubscription = supabase
@@ -160,8 +154,7 @@ function subscribeToMessages() {
 }
 
 /**
- * Fetches the username for a new message and displays it.
- * @param {object} msgRow - The new message row from Supabase.
+ * Fetch username for a new message and display it.
  */
 async function fetchUserAndRenderMessage(msgRow) {
   const { data: userData, error } = await supabase
@@ -182,7 +175,7 @@ async function fetchUserAndRenderMessage(msgRow) {
  ************************************************************/
 
 /**
- * Handles the wallet connection when the "Connect Phantom Wallet" button is clicked.
+ * Connect Phantom Wallet button
  */
 connectWalletBtn.addEventListener("click", async () => {
   if (window.solana && window.solana.isPhantom) {
@@ -206,7 +199,7 @@ connectWalletBtn.addEventListener("click", async () => {
 });
 
 /**
- * Handles sending messages when the "Send" button is clicked or Enter key is pressed.
+ * Send message (on button click or Enter key)
  */
 sendBtn.addEventListener("click", sendMessage);
 chatInput.addEventListener("keyup", (e) => {
@@ -216,12 +209,12 @@ chatInput.addEventListener("keyup", (e) => {
 });
 
 /**
- * Sends a message after validating slow mode restrictions.
+ * Sends a message if slow mode allows.
  */
 async function sendMessage() {
   const userData = JSON.parse(localStorage.getItem("myLivechatUser"));
   if (!userData || !userData.id) {
-    // If user is not connected, you might want to show a different warning
+    // If user is not connected, we can show a warning or do nothing
     showSlowModeWarning();
     return;
   }
@@ -229,7 +222,7 @@ async function sendMessage() {
   const content = chatInput.value.trim();
   if (!content) return;
 
-  // 1. Check slow mode (compare now vs. user.last_message_at)
+  // Check slow mode (compare now vs. user.last_message_at)
   const { data: freshUser, error: fetchError } = await supabase
     .from("users")
     .select("*")
@@ -246,17 +239,16 @@ async function sendMessage() {
     : null;
   const now = new Date();
 
-  // If lastMessageAt is not null, check the difference
+  // If lastMessageAt is not null, check time difference
   if (lastMessageAt) {
     const diffInSeconds = (now.getTime() - lastMessageAt.getTime()) / 1000;
     if (diffInSeconds < 5) {
-      // Show slow mode warning
       showSlowModeWarning();
       return;
     }
   }
 
-  // 2. Insert message
+  // Insert the message
   const { error: insertError } = await supabase
     .from("messages")
     .insert([{ user_id: freshUser.id, content }]);
@@ -266,7 +258,7 @@ async function sendMessage() {
     return;
   }
 
-  // 3. Update user.last_message_at to now
+  // Update last_message_at
   const { error: updateError, data: updatedUser } = await supabase
     .from("users")
     .update({ last_message_at: now.toISOString() })
@@ -277,11 +269,11 @@ async function sendMessage() {
   if (updateError) {
     console.error("Error updating last_message_at:", updateError);
   } else {
-    // Update localStorage
+    // Update local storage
     localStorage.setItem("myLivechatUser", JSON.stringify(updatedUser));
   }
 
-  // 4. Clear input
+  // Clear input
   chatInput.value = "";
 }
 
@@ -289,18 +281,18 @@ async function sendMessage() {
  * 4. INIT
  ************************************************************/
 window.addEventListener("DOMContentLoaded", async () => {
-  // 1. Fetch /config to get .env data
+  // Fetch /config to get environment data
   try {
     const configResponse = await fetch("/config");
     const configData = await configResponse.json();
 
-    // 2. Create supabase client
+    // Create supabase client
     supabase = window.supabase.createClient(
       configData.SUPABASE_URL,
       configData.SUPABASE_ANON_KEY
     );
 
-    // 3. Load existing messages, subscribe to new ones
+    // Load existing messages, subscribe to new
     await fetchExistingMessages();
     subscribeToMessages();
   } catch (err) {
