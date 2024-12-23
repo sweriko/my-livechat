@@ -12,17 +12,49 @@ const chatContainer = document.getElementById("chatContainer");
 const chatInput = document.getElementById("chatInput");
 const sendBtn = document.getElementById("sendBtn");
 
+// Slow mode warning text
+const slowModeWarning = document.getElementById("slowModeWarning");
+
 /************************************************************
  * 2. HELPER FUNCTIONS
  ************************************************************/
 
-// Random username generator
+/**
+ * Show slow mode warning with shake animation.
+ * The warning appears, shakes, and disappears.
+ */
+function showSlowModeWarning() {
+  slowModeWarning.textContent = "You are too fast dude!";
+  slowModeWarning.style.display = "block";
+
+  // Add the shake class to trigger animation
+  slowModeWarning.classList.add("shake");
+
+  // Remove the shake class after the animation completes (0.3s)
+  setTimeout(() => {
+    slowModeWarning.classList.remove("shake");
+  }, 300); // Matches the animation duration
+
+  // Hide the warning after the animation completes plus a brief pause
+  setTimeout(() => {
+    slowModeWarning.style.display = "none";
+  }, 600); // 300ms animation + 300ms pause
+}
+
+/**
+ * Generates a random username in the format "UserXXXX"
+ * where XXXX is a random 4-digit number.
+ */
 function generateRandomUsername() {
   const randomId = Math.floor(1000 + Math.random() * 9000);
   return "User" + randomId;
 }
 
-// Retrieve or create user in the "users" table
+/**
+ * Retrieves an existing user or creates a new one in the "users" table.
+ * @param {string} publicKey - The user's wallet public key.
+ * @returns {object|null} - The user object or null if creation failed.
+ */
 async function getOrCreateUser(publicKey) {
   // Check localStorage first
   let existingUser = JSON.parse(localStorage.getItem("myLivechatUser"));
@@ -63,7 +95,11 @@ async function getOrCreateUser(publicKey) {
   }
 }
 
-// Add message to UI
+/**
+ * Adds a new message to the chat UI.
+ * @param {string} username - The sender's username.
+ * @param {string} content - The message content.
+ */
 function addMessageToUI(username, content) {
   const li = document.createElement("li");
 
@@ -78,11 +114,13 @@ function addMessageToUI(username, content) {
   li.appendChild(contentSpan);
   messagesList.appendChild(li);
 
-  // Auto-scroll
+  // Auto-scroll to the latest message
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// Fetch existing messages
+/**
+ * Fetches existing messages from Supabase and displays them.
+ */
 async function fetchExistingMessages() {
   const { data: messages, error } = await supabase
     .from("messages")
@@ -99,15 +137,21 @@ async function fetchExistingMessages() {
   });
 }
 
-// Subscribe to real-time inserts
+/**
+ * Subscribes to real-time message inserts and updates the UI accordingly.
+ */
 function subscribeToMessages() {
   messagesSubscription = supabase
     .channel("public:messages")
-    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
-      const newMsg = payload.new;
-      if (!newMsg) return;
-      fetchUserAndRenderMessage(newMsg);
-    })
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "messages" },
+      (payload) => {
+        const newMsg = payload.new;
+        if (!newMsg) return;
+        fetchUserAndRenderMessage(newMsg);
+      }
+    )
     .subscribe((status) => {
       if (status === "SUBSCRIBED") {
         console.log("Realtime subscription is active for messages.");
@@ -115,6 +159,10 @@ function subscribeToMessages() {
     });
 }
 
+/**
+ * Fetches the username for a new message and displays it.
+ * @param {object} msgRow - The new message row from Supabase.
+ */
 async function fetchUserAndRenderMessage(msgRow) {
   const { data: userData, error } = await supabase
     .from("users")
@@ -133,6 +181,9 @@ async function fetchUserAndRenderMessage(msgRow) {
  * 3. EVENT HANDLERS
  ************************************************************/
 
+/**
+ * Handles the wallet connection when the "Connect Phantom Wallet" button is clicked.
+ */
 connectWalletBtn.addEventListener("click", async () => {
   if (window.solana && window.solana.isPhantom) {
     try {
@@ -154,7 +205,9 @@ connectWalletBtn.addEventListener("click", async () => {
   }
 });
 
-// Send message
+/**
+ * Handles sending messages when the "Send" button is clicked or Enter key is pressed.
+ */
 sendBtn.addEventListener("click", sendMessage);
 chatInput.addEventListener("keyup", (e) => {
   if (e.key === "Enter") {
@@ -162,32 +215,79 @@ chatInput.addEventListener("keyup", (e) => {
   }
 });
 
+/**
+ * Sends a message after validating slow mode restrictions.
+ */
 async function sendMessage() {
   const userData = JSON.parse(localStorage.getItem("myLivechatUser"));
   if (!userData || !userData.id) {
-    alert("You must connect your Phantom wallet first!");
+    // If user is not connected, you might want to show a different warning
+    showSlowModeWarning();
     return;
   }
 
   const content = chatInput.value.trim();
   if (!content) return;
 
-  const { error } = await supabase
-    .from("messages")
-    .insert([{ user_id: userData.id, content }]);
+  // 1. Check slow mode (compare now vs. user.last_message_at)
+  const { data: freshUser, error: fetchError } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", userData.id)
+    .single();
 
-  if (error) {
-    console.error("Error sending message:", error);
-    alert("Failed to send message!");
+  if (fetchError) {
+    console.error("Error fetching user for slow mode:", fetchError);
     return;
   }
+
+  const lastMessageAt = freshUser.last_message_at
+    ? new Date(freshUser.last_message_at)
+    : null;
+  const now = new Date();
+
+  // If lastMessageAt is not null, check the difference
+  if (lastMessageAt) {
+    const diffInSeconds = (now.getTime() - lastMessageAt.getTime()) / 1000;
+    if (diffInSeconds < 5) {
+      // Show slow mode warning
+      showSlowModeWarning();
+      return;
+    }
+  }
+
+  // 2. Insert message
+  const { error: insertError } = await supabase
+    .from("messages")
+    .insert([{ user_id: freshUser.id, content }]);
+
+  if (insertError) {
+    console.error("Error sending message:", insertError);
+    return;
+  }
+
+  // 3. Update user.last_message_at to now
+  const { error: updateError, data: updatedUser } = await supabase
+    .from("users")
+    .update({ last_message_at: now.toISOString() })
+    .eq("id", freshUser.id)
+    .select()
+    .single();
+
+  if (updateError) {
+    console.error("Error updating last_message_at:", updateError);
+  } else {
+    // Update localStorage
+    localStorage.setItem("myLivechatUser", JSON.stringify(updatedUser));
+  }
+
+  // 4. Clear input
   chatInput.value = "";
 }
 
 /************************************************************
  * 4. INIT
  ************************************************************/
-
 window.addEventListener("DOMContentLoaded", async () => {
   // 1. Fetch /config to get .env data
   try {

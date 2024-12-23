@@ -2,14 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Global Livechat</title>
+    <title>Livechat</title>
     <link rel="stylesheet" href="style.css" />
     <!-- Supabase JS client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   </head>
   <body>
     <header>
-      <h1>My Global Livechat</h1>
       <button id="connectWalletBtn">Connect Phantom Wallet</button>
     </header>
 
@@ -19,7 +18,10 @@
         <ul id="messagesList"></ul>
       </div>
 
-      <!-- Message input -->
+      <!-- Warning message for slow mode -->
+      <div id="slowModeWarning"></div>
+
+      <!-- Message input area -->
       <div id="inputContainer">
         <input type="text" id="chatInput" placeholder="Type your message..." />
         <button id="sendBtn">Send</button>
